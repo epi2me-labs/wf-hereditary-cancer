@@ -13,7 +13,7 @@ variables:
     PYTEST_CONTAINER_CONFIG_KEY: "e2l_base_tag"
     PYTEST_CONTAINER_NAME: "wf-human-variation"
     GIT_SUBMODULE_STRATEGY: recursive
-    RELEASE_WORKFLOW: "no" # do not release this workflow!
+    RELEASE_WITHOUT_DEMO: "yes"
 
 docker-run:
     artifacts:
