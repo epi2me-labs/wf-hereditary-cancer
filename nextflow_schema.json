@@ -4,8 +4,6 @@
     "title": "epi2me-labs/wf-hereditary-cancer",
     "workflow_title": "Human hereditary cancer workflow",
     "description": "Variant calling in human hereditary cancer samples.",
-    "demo_url": "https://ont-exd-int-s3-euwst1-epi2me-labs.s3.amazonaws.com/wf-hereditary-cancer/wf-hereditary-cancer-demo.tar.gz",
-    "aws_demo_url": "https://ont-exd-int-s3-euwst1-epi2me-labs.s3.amazonaws.com/wf-hereditary-cancer/wf-hereditary-cancer-demo/aws.nextflow.config",
     "url": "https://github.com/epi2me-labs/wf-hereditary-cancer",
     "type": "object",
     "definitions": {
