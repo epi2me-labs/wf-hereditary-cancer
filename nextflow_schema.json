@@ -1,0 +1,719 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "$id": "https://raw.githubusercontent.com/epi2me-labs/wf-hereditary-cancer/master/nextflow_schema.json",
+    "title": "epi2me-labs/wf-hereditary-cancer",
+    "workflow_title": "Human hereditary cancer workflow",
+    "description": "Variant calling in human hereditary cancer samples.",
+    "demo_url": "https://ont-exd-int-s3-euwst1-epi2me-labs.s3.amazonaws.com/wf-hereditary-cancer/wf-hereditary-cancer-demo.tar.gz",
+    "aws_demo_url": "https://ont-exd-int-s3-euwst1-epi2me-labs.s3.amazonaws.com/wf-hereditary-cancer/wf-hereditary-cancer-demo/aws.nextflow.config",
+    "url": "https://github.com/epi2me-labs/wf-hereditary-cancer",
+    "type": "object",
+    "definitions": {
+        "workflow": {
+            "title": "Workflow Options",
+            "type": "object",
+            "fa_icon": "fas fa-arrow-right",
+            "description": "Select which sub-workflows of wf-human-variation you wish to run. Parameters for each sub-workflow can be changed using the sections below.",
+            "properties": {
+                "sv": {
+                    "title": "SV: Structural variants",
+                    "type": "boolean",
+                    "description": "Call for structural variants.",
+                    "help_text": "If this option is selected, structural variant calling will be carried out using Sniffles2.",
+                    "default": true,
+                    "overrides": {
+                        "minknow": {
+                            "default": true,
+                            "title": "Structural variants"
+                        }
+                    }
+                },
+                "snp": {
+                    "title": "SNP: Small variants",
+                    "type": "boolean",
+                    "description": "Call for small variants",
+                    "help_text": "If this option is selected, small variant calling will be carried out using Clair3.",
+                    "default": true,
+                    "overrides": {
+                        "minknow": {
+                            "default": true,
+                            "title": "Single nucleotide polymorphisms"
+                        }
+                    }
+                },
+                "str": {
+                    "title": "STR: Short tandem repeat expansions",
+                    "type": "boolean",
+                    "description": "Enable Straglr to genotype STR expansions.",
+                    "help_text": "If this option is selected, genotyping of STR expansions will be carried out using Straglr. This sub-workflow is only compatible with genome build hg38.",
+                    "default": false,
+                    "hidden": true,
+                    "overrides": {
+                        "minknow": {
+                            "title": "Short tandem repeats",
+                            "default": true
+                        }
+                    }
+                },
+                "mod": {
+                    "title": "MOD: Modified bases aggregation",
+                    "type": "boolean",
+                    "description": "Enable output of modified calls to a bedMethyl file [requires input BAM with Ml and Mm tags]",
+                    "help_text": "This option is automatically selected and aggregation of modified calls with be carried out using modkit if Ml and Mm tags are found. Disable this option to prevent output of a bedMethyl file.",
+                    "default": true,
+                    "overrides": {
+                        "minknow": {
+                            "default": true
+                        }
+                    }
+                }
+            },
+            "anyOf": [
+                {
+                    "required": [
+                        "sv"
+                    ]
+                },
+                {
+                    "required": [
+                        "snp"
+                    ]
+                },
+                {
+                    "required": [
+                        "mod"
+                    ]
+                }
+            ]
+        },
+        "input": {
+            "title": "Main options",
+            "type": "object",
+            "fa_icon": "fas fa-arrow-right",
+            "description": "Primary parameters for the data analysis.",
+            "overrides": {
+                "minknow": {
+                    "title": "Human genome reference",
+                    "description": ""
+                }
+            },
+            "properties": {
+                "sample_name": {
+                    "type": "string",
+                    "default": "SAMPLE",
+                    "description": "Sample name to be displayed in workflow outputs.",
+                    "help_text": "",
+                    "overrides": {
+                        "minknow": {
+                            "hint": "sampleId",
+                            "hidden": true
+                        }
+                    }
+                },
+                "bam": {
+                    "title": "Input: BAM file",
+                    "type": "string",
+                    "format": "path",
+                    "description": "BAM or unaligned BAM (uBAM) files for the sample to use in the analysis.",
+                    "help_text": "This accepts one of two cases: (i) the path to a single BAM file; (ii) the path to a top-level directory containing BAM files. A sample name can be supplied with `--sample`.",
+                    "overrides": {
+                        "minknow": {
+                            "hint": "bamOutputDirectory",
+                            "hidden": true
+                        }
+                    }
+                },
+                "bed": {
+                    "title": "Target region BED file",
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "A BED file enumerating regions to process for variant calling.",
+                    "help_text": "Please contact your sales representative to obtain the hereditary cancer BED file",
+                    "overrides": {
+                        "minknow": {
+                            "hint": "alignmentBedFile",
+                            "title": "Optional .bed file for enumerating regions to process for variant calling"
+                        }
+                    }
+                },
+                "ref": {
+                    "title": "Reference file",
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "Path to a reference FASTA file.",
+                    "help_text": "Reference against which to compare reads for variant calling.",
+                    "hidden": true,
+                    "overrides": {
+                        "minknow": {
+                            "hint": "alignmentRefFile",
+                            "title": "Reference file for alignment"
+                        }
+                    }
+                },
+                "basecaller_cfg": {
+                    "title": "Basecaller configuration",
+                    "type": "string",
+                    "description": "Name of the model to use for selecting a small variant calling model.",
+                    "help_text": "The workflow will attempt to find the basecaller model from the headers of your input data. If the model cannot be found in the header, it must be provided with this option as the basecaller model is required for small variant calling. The basecaller model is used to automatically select the appropriate small variant calling model. The model list shows all models that are compatible for small variant calling with this workflow. You should select 'custom' to override the basecaller_cfg with clair3_model_path.",
+                    "default": "dna_r10.4.1_e8.2_400bps_hac@v4.3.0",
+                    "enum": [
+                        "dna_r10.4.1_e8.2_400bps_hac@v4.3.0",
+                        "dna_r10.4.1_e8.2_400bps_sup@v4.3.0"
+                    ],
+                    "overrides": {
+                        "minknow": {
+                            "hint": "basecallModel",
+                            "hidden": true
+                        }
+                    }
+                },
+                "bam_min_coverage": {
+                    "type": "number",
+                    "default": 0,
+                    "description": "Minimum read coverage required to run analysis.",
+                    "hidden": true,
+                    "overrides": {
+                        "minknow": {
+                            "hidden": true
+                        }
+                    }
+                },
+                "depth_window_size": {
+                    "type": "number",
+                    "default": 25000,
+                    "description": "Coverage window size in bp.",
+                    "help_text": "This options specify the window size to use when computing the coverage along the genome.",
+                    "hidden": true,
+                    "overrides": {
+                        "minknow": {
+                            "hidden": true
+                        }
+                    }
+                },
+                "annotation": {
+                    "type": "boolean",
+                    "description": "SnpEff annotation.",
+                    "help_text": "If this option is unselected, VCFs will not be annotated with SnpEff.",
+                    "default": true,
+                    "hidden": true,
+                    "overrides": {
+                        "minknow": {
+                            "hidden": true
+                        }
+                    }
+                },
+                "phased": {
+                    "type": "boolean",
+                    "default": true,
+                    "hidden": true,
+                    "description": "Perform phasing.",
+                    "help_text": "This option enables phasing of SV, SNP and modifications, depending on which sub-workflow has been chosen; see [README](README.md#9-phasing-variants) for more details."
+                },
+                "include_all_ctgs": {
+                    "type": "boolean",
+                    "default": false,
+                    "hidden": true,
+                    "description": "Call for variants on all sequences in the reference, otherwise small and structural variants will only be called on chr{1..22,X,Y,MT}.",
+                    "help_text": "Enabling this option will call for variants on all contigs of the input reference sequence. Typically this option is not required as standard human reference sequences contain decoy and unplaced contigs that are usually omitted for the purpose of variant calling. This option might be useful for non-standard reference sequence databases.",
+                    "overrides": {
+                        "minknow": {
+                            "title": "Include all contigs"
+                        }
+                    }
+                },
+                "output_gene_summary": {
+                    "type": "boolean",
+                    "default": true,
+                    "hidden": true,
+                    "description": "If set to true, the workflow will generate gene-level coverage summaries.",
+                    "help_text": "If set to true, a 4-column BED file must be supplied, where column 4 is the gene label. The workflow will generate a list of all genes in the BED and their percentage coverage at a range of thresholds (1x, 10x, 15x, 20x, and 30x), as well as the average coverage of each gene."
+                },
+                "output_report": {
+                    "type": "boolean",
+                    "default": true,
+                    "hidden": true,
+                    "description": "Emits HTML reports for the individual analyses",
+                    "help_text": "By default, the workflow generates HTML reports summarising the results for each analysis; setting this value to `false` disables the reporting functions and the workflow will not output reports."
+                },
+                "haplocheck": {
+                    "type": "boolean",
+                    "hidden": true,
+                    "default": false,
+                    "description": "Run contamination check",
+                    "help_text": "If set to true, the workflow will try to estimate the contamination level of the sample using [haplocheck](https://mitoverse.readthedocs.io/haplocheck/haplocheck/) on the mitogenome."
+                },
+                "mitogenome": {
+                    "type": "boolean",
+                    "hidden": true,
+                    "description": "Sequence ID of the michondrial genome",
+                    "help_text": "By default, the workflow will attempt to extract the sequences mapping to the sequences called chrM, MT and Mt when assessing the contamination. If the mitochondrial genome has a different sequence ID, please provide it here."
+                },
+                "out_dir": {
+                    "title": "Output directory",
+                    "type": "string",
+                    "default": "output",
+                    "format": "directory-path",
+                    "description": "Directory for output of all workflow results.",
+                    "overrides": {
+                        "minknow": {
+                            "hidden": true
+                        }
+                    }
+                },
+                "store_dir": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "title": "Store directory name",
+                    "description": "Where to store initial download of reference genome.",
+                    "help_text": "Reference genome will be downloaded as part of the workflow and saved in this location, on subsequent runs it will use this as the reference."
+                }
+            },
+            "required": [
+                "bam",
+                "bed"
+            ]
+        },
+        "sv_options": {
+            "title": "Structural variant calling options",
+            "type": "object",
+            "description": "Options specific to the SV calling subworkflow.",
+            "overrides": {
+                "minknow": {
+                    "parameters": {
+                        "hidden": true
+                    }
+                }
+            },
+            "properties": {
+                "tr_bed": {
+                    "title": "Tandem repeat BED file",
+                    "type": "string",
+                    "format": "file-path",
+                    "hidden": true,
+                    "description": "Input BED file containing tandem repeat annotations for the reference genome.",
+                    "help_text": "Providing a tandem repeat BED can improve calling in repetitive regions. An appropriate tandem repeat BED can be downloaded for your reference genome [from the Sniffles2 repository](https://github.com/fritzsedlazeck/Sniffles/tree/master/annotations)."
+                },
+                "cluster_merge_pos": {
+                    "type": "number",
+                    "default": 150,
+                    "description": "Maximum merging distance for insertions and deletions on the same read and cluster in non-repeat regions.",
+                    "hidden": true
+                },
+                "min_sv_length": {
+                    "type": "number",
+                    "default": 30,
+                    "description": "Minimum structural variant size called by Sniffles2.",
+                    "hidden": true,
+                    "minimum": 30
+                },
+                "sniffles_args": {
+                    "type": "string",
+                    "description": "Additional command line arguments to pass to the Sniffles2 process",
+                    "hidden": true,
+                    "help_text": "The additional command line arguments will be passed directly to Sniffles2; ensure to use the right commands for the version and from command line provide them as follow: `--sniffles_args=\"--non-germline\"`."
+                }
+            }
+        },
+        "sv_benchmark_options": {
+            "title": "Structural variant benchmarking options",
+            "type": "object",
+            "description": "Options specific to automated benchmarking of the SV calling subworkflow.",
+            "overrides": {
+                "minknow": {
+                    "parameters": {
+                        "hidden": true
+                    }
+                }
+            },
+            "properties": {
+                "sv_benchmark": {
+                    "type": "boolean",
+                    "description": "Benchmark called structural variants.",
+                    "help_text": "If this option is selected, automated benchmarking of structural variant calls will be carried out using Truvari.",
+                    "default": false,
+                    "hidden": true
+                },
+                "sv_benchmark_vcf": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "Override truthset VCF for benchmarking structural variants.",
+                    "help_text": "This option will use a custom VCF in place of the one bundled with the default 'NIST_SVs_Integration_v0.6' truth set. A Tabix index is required and will be expected to have the same path as the VCF with a '.tbi' extension.",
+                    "hidden": true
+                },
+                "sv_benchmark_bed": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "Override truthset BED for benchmarking structural variants.",
+                    "help_text": "This option will use a custom BED in place of the one bundled with the default 'NIST_SVs_Integration_v0.6' truth set.",
+                    "hidden": true
+                }
+            },
+            "dependencies": {
+                "sv_benchmark": [
+                    "sv"
+                ]
+            }
+        },
+        "snp_options": {
+            "title": "Small variant calling options",
+            "type": "object",
+            "description": "Options specific to the small variant calling subworkflow.",
+            "overrides": {
+                "minknow": {
+                    "parameters": {
+                        "hidden": true
+                    }
+                }
+            },
+            "properties": {
+                "use_longphase": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Use longphase for final phasing of output variants (experimental).",
+                    "hidden": true,
+                    "help_text": "The default behaviour of the workflow is to use [whatshap](https://whatshap.readthedocs.io/) for the variant phasing. If set to true, the workflow will execute [longphase](https://github.com/twolinin/longphase) instead."
+                },
+                "clair3_model_path": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "description": "Clair3 model directory.",
+                    "help_text": "The workflow will attempt to map the basecalling model used to a suitable Clair3 model. You can override this by providing the path to a model with this option instead. Models can be obtained from [this page](https://cdn.oxfordnanoportal.com/software/analysis/models/clair3/index.html).",
+                    "hidden": true
+                },
+                "ref_pct_full": {
+                    "type": "number",
+                    "default": 0.1,
+                    "description": "Expected percentage of low quality 0/0 variants called in the pileup mode for full-alignment mode calling.",
+                    "hidden": true
+                },
+                "var_pct_full": {
+                    "type": "number",
+                    "default": 0.7,
+                    "description": "Expected percentage of low quality 0/1 and 1/1 variants called in the pileup mode for full-alignment mode calling.",
+                    "hidden": true
+                },
+                "snp_min_af": {
+                    "type": "number",
+                    "default": 0.08,
+                    "description": "Minimum SNP AF required for a candidate variant.",
+                    "hidden": true
+                },
+                "indel_min_af": {
+                    "type": "number",
+                    "default": 0.15,
+                    "description": "Minimum Indel AF required for a candidate variant.",
+                    "hidden": true
+                },
+                "vcf_fn": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "Candidate sites VCF file input, variants will only be called at the sites in the VCF file if provided.",
+                    "hidden": true
+                },
+                "min_cov": {
+                    "type": "number",
+                    "default": 2,
+                    "description": "Minimum coverage required to call a variant (experimental).",
+                    "hidden": true
+                },
+                "min_mq": {
+                    "type": "number",
+                    "default": 5,
+                    "description": "Reads with mapping quality < min_mq are filtered (experimental).",
+                    "hidden": true
+                },
+                "min_qual": {
+                    "type": "number",
+                    "default": 2,
+                    "description": "Variants with >=min_qual will be marked 'PASS', or 'LowQual' otherwise, optional.",
+                    "hidden": true
+                },
+                "min_contig_size": {
+                    "type": "number",
+                    "default": 0,
+                    "description": "Contigs with contig size < min_contig_size are filtered (experimental).",
+                    "hidden": true
+                },
+                "ctg_name": {
+                    "type": "string",
+                    "description": "The name of the sequence to be processed.",
+                    "hidden": true
+                },
+                "refine_snp_with_sv": {
+                    "type": "boolean",
+                    "hidden": true,
+                    "default": true,
+                    "description": "Refine SNP calls using calls from the SV subworkflow.",
+                    "help_text": "By default when the SNP and SV subworkflows are both selected, the workflow will use the results of the SV subworkflow to refine the SNP calls. Disabling this option will stop the use of SV calls to refine low-coverage variant zygosity and variant phase to avoid impossible overlaps (e.g. homozygous SNPs falling in a large deletion called by Sniffles)."
+                }
+            }
+        },
+        "mod_options": {
+            "title": "Modified base calling options",
+            "type": "object",
+            "description": "Options related to the modified bases aggregation subworkflow.",
+            "overrides": {
+                "minknow": {
+                    "parameters": {
+                        "hidden": true
+                    }
+                }
+            },
+            "properties": {
+                "force_strand": {
+                    "title": "Force strand",
+                    "type": "boolean",
+                    "default": false,
+                    "hidden": true,
+                    "description": "Require modkit to call strand-aware modifications.",
+                    "help_text": "By default strand calls are collapsed (strand reported as '.'). Enabling this will force stranding to be considered when calling modifications, creating one output per modification per strand and the report will be tabulated by both modification and strand."
+                },
+                "modkit_args": {
+                    "title": "Modkit additional arguments",
+                    "type": "string",
+                    "description": "The additional options for modkit.",
+                    "hidden": true,
+                    "help_text": "This is an advanced option to allow running modkit with custom settings. The arguments specified in this option will fully override all options set by the workflow. To provide custom arguments to `modkit` from command line proceed as follow: `--modkit_args=\"--preset traditional\"`"
+                }
+            }
+        },
+        "str_options": {
+            "title": "Short tandem repeat expansion genotyping options",
+            "type": "object",
+            "description": "Options related to the STR subworkflow.",
+            "overrides": {
+                "minknow": {
+                    "title": "Short tandem repeat calling options",
+                    "description": ""
+                }
+            },
+            "properties": {
+                "sex": {
+                    "title": "Sample sex",
+                    "type": "string",
+                    "hidden": true,
+                    "description": "Sex (XX or XY) to be passed to Straglr-genotype.",
+                    "help_text": "The sex determines how many calls will be obtained for all repeats on chrX. If not specified, the workflow will naively attempt to infer whether the sample carries XX or XY based on relative coverage of the allosomes.",
+                    "enum": [
+                        "XY",
+                        "XX"
+                    ],
+                    "overrides": {
+                        "minknow": {
+                            "title": "Sex (XX or XY) to be passed to Straglr-genotype."
+                        }
+                    }
+                }
+            }
+        },
+        "advanced_options": {
+            "title": "Advanced Options",
+            "type": "object",
+            "fa_icon": "far fa-question-circle",
+            "description": "Advanced options for configuring processes inside the workflow.",
+            "help_text": "These advanced options do not need to be changed for typical use, but allow fine tuning of workflows for users who want more control over the workflow.",
+            "overrides": {
+                "minknow": {
+                    "parameters": {
+                        "hidden": true
+                    }
+                }
+            },
+            "properties": {
+                "depth_intervals": {
+                    "type": "boolean",
+                    "default": false,
+                    "hidden": true,
+                    "description": "Output a bedGraph file with entries for each genomic interval featuring homogeneous depth.",
+                    "help_text": "The output [bedGraph](https://genome.ucsc.edu/goldenPath/help/bedgraph.html) file will have an entry for each genomic interval in which all positions have the same alignment depth. By default this workflow outputs summary depth information from your aligned reads. Per-base depth outputs are slower to generate but may be required for some downstream applications."
+                },
+                "GVCF": {
+                    "type": "boolean",
+                    "default": false,
+                    "hidden": true,
+                    "description": "Enable to output a gVCF file in addition to the VCF outputs (experimental).",
+                    "help_text": "By default the the workflow outputs a VCF file containing only records where a variant has been detected. Enabling this option will output additionally a gVCF with records spanning all reference positions regardless of whether a variant was detected in the sample."
+                },
+                "base_err": {
+                    "type": "number",
+                    "default": 0.001,
+                    "hidden": true,
+                    "description": "Estimated base error rate when enabling GVCF option (experimental).",
+                    "help_text": "Relevant only if running Clair3 in GVCF mode."
+                },
+                "gq_bin_size": {
+                    "type": "number",
+                    "default": 5,
+                    "hidden": true,
+                    "description": "Default gq bin size for merge non-variant block when enabling GVCF option (experimental).",
+                    "help_text": "Relevant only if running Clair3 in GVCF mode."
+                },
+                "downsample_coverage": {
+                    "type": "boolean",
+                    "default": false,
+                    "hidden": true,
+                    "description": "Downsample the coverage to along the genome.",
+                    "help_text": "This options will trigger a downsampling of the read alignments to the target coverage specified by --downsample_coverage_target. Downsampling will make the workflow run faster but could lead to non-deterministic variant calls."
+                },
+                "downsample_coverage_target": {
+                    "type": "number",
+                    "default": 60,
+                    "hidden": true,
+                    "description": "Average coverage or reads to use for the analyses.",
+                    "help_text": "This options will set the target coverage for the downsampling stage, if downsampling has been enabled."
+                },
+                "downsample_coverage_margin": {
+                    "type": "number",
+                    "default": 1.1,
+                    "description": "Downsample if the bam effective coverage / target coverage if greater than this value.",
+                    "help_text": "By default, if the coverage of the input alignments is within 1.1x the target coverage, downsampling will not be performed even if it was enabled. This is to avoid triggering the downsampling of alignments when coverage is already close to the target coverage.",
+                    "hidden": true
+                }
+            }
+        },
+        "multiprocessing_options": {
+            "title": "Multiprocessing Options",
+            "type": "object",
+            "fa_icon": "far fa-gauge-high",
+            "description": "Options for configuring the common processes across the different subworkflows.",
+            "help_text": "These options do not need to be changed for typical use, but allow fine tuning of workflows for users who want more control over the workflow.",
+            "overrides": {
+                "minknow": {
+                    "parameters": {
+                        "hidden": true
+                    }
+                }
+            },
+            "properties": {
+                "threads": {
+                    "type": "integer",
+                    "default": 4,
+                    "description": "Set max number of threads to use for more intense processes (limited by config executor cpus)"
+                },
+                "ubam_map_threads": {
+                    "type": "integer",
+                    "default": 8,
+                    "description": "Set max number of threads to use for aligning reads from uBAM (limited by config executor cpus)"
+                },
+                "ubam_sort_threads": {
+                    "type": "integer",
+                    "default": 3,
+                    "description": "Set max number of threads to use for sorting and indexing aligned reads from uBAM (limited by config executor cpus)"
+                },
+                "ubam_bam2fq_threads": {
+                    "type": "integer",
+                    "default": 1,
+                    "description": "Set max number of threads to use for uncompressing uBAM and generating FASTQ for alignment (limited by config executor cpus)"
+                },
+                "merge_threads": {
+                    "type": "integer",
+                    "default": 4,
+                    "description": "Set max number of threads to use for merging alignment files (limited by config executor cpus)"
+                },
+                "modkit_threads": {
+                    "type": "integer",
+                    "default": 4,
+                    "description": "Total number of threads to use in modkit modified base calling (limited by config executor cpus)"
+                }
+            }
+        },
+        "misc": {
+            "title": "Miscellaneous Options",
+            "type": "object",
+            "description": "Everything else.",
+            "default": "",
+            "overrides": {
+                "minknow": {
+                    "parameters": {
+                        "hidden": true
+                    }
+                }
+            },
+            "properties": {
+                "disable_ping": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Enable to prevent sending a workflow ping."
+                },
+                "help": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Display help text.",
+                    "fa_icon": "fas fa-question-circle",
+                    "hidden": true
+                },
+                "version": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Display version and exit.",
+                    "fa_icon": "fas fa-question-circle",
+                    "hidden": true
+                }
+            }
+        }
+    },
+    "allOf": [
+        {
+            "$ref": "#/definitions/workflow"
+        },
+        {
+            "$ref": "#/definitions/input"
+        },
+        {
+            "$ref": "#/definitions/snp_options"
+        },
+        {
+            "$ref": "#/definitions/sv_options"
+        },
+        {
+            "$ref": "#/definitions/advanced_options"
+        },
+        {
+            "$ref": "#/definitions/mod_options"
+        },
+        {
+            "$ref": "#/definitions/str_options"
+        },
+        {
+            "$ref": "#/definitions/sv_benchmark_options"
+        },
+        {
+            "$ref": "#/definitions/multiprocessing_options"
+        },
+        {
+            "$ref": "#/definitions/misc"
+        }
+    ],
+    "properties": {
+        "aws_image_prefix": {
+            "type": "string",
+            "hidden": true
+        },
+        "aws_queue": {
+            "type": "string",
+            "hidden": true
+        },
+        "monochrome_logs": {
+            "type": "boolean"
+        },
+        "validate_params": {
+            "type": "boolean",
+            "default": true
+        },
+        "show_hidden_params": {
+            "type": "boolean"
+        }
+    },
+    "resources": {
+        "recommended": {
+            "cpus": 32,
+            "memory": "128GB"
+        },
+        "minimum": {
+            "cpus": 16,
+            "memory": "32GB"
+        },
+        "run_time": "40 minutes per sample",
+        "arm_support": false
+    }
+}

@@ -1,0 +1,148 @@
+{
+  "files": {
+    "workflow-alignment-stats-report": {
+      "filepath": "{{ alias }}.wf-human-alignment-report.html",
+      "title": "Report of the alignment statistics",
+      "description": "Report summarising the results of the alignment statistics for the sample.",
+      "mime-type": "text/html",
+      "optional": false,
+      "type": "per-sample"
+    },
+    "metrics-json": {
+      "filepath": "{{ alias }}.stats.json",
+      "title": "JSON file of some base statistics",
+      "description": "This JSON file contains base statistics on the reads, mappings, SNPs and SVs for the sample.",
+      "mime-type": "application/json",
+      "optional": false,
+      "type": "per-sample"
+    },
+    "workflow-snv-report": {
+      "filepath": "{{ alias }}.wf-human-snp-report.html",
+      "title": "Report of the SNP workflow",
+      "description": "Report summarising the results of the SNP subworkflow for the sample.",
+      "mime-type": "text/html",
+      "optional": true,
+      "type": "per-sample"
+    },
+    "workflow-sv-report": {
+      "filepath": "{{ alias }}.wf-human-sv-report.html",
+      "title": "Report of the SV workflow",
+      "description": "Report summarising the results of the SV subworkflow for the sample.",
+      "mime-type": "text/html",
+      "optional": true,
+      "type": "per-sample"
+    },
+    "snp-vcf": {
+      "filepath": "{{ alias }}.wf_snp.vcf.gz",
+      "title": "Short variant VCF",
+      "description": "VCF file with the SNPs for the sample.",
+      "mime-type": "application/gzip",
+      "optional": true,
+      "type": "per-sample"
+    },
+    "sv-vcf": {
+      "filepath": "{{ alias }}.wf_sv.vcf.gz",
+      "title": "Structural variant VCF",
+      "description": "VCF file with the SVs for the sample.",
+      "mime-type": "application/gzip",
+      "optional": true,
+      "type": "per-sample"
+    },
+    "mod-bedmethyl": {
+      "filepath": "{{ alias }}.wf_mods.bedmethyl.gz",
+      "title": "Modified bases BEDMethyl",
+      "description": "BED file with the aggregated modification counts for the sample.",
+      "mime-type": "application/gzip",
+      "optional": true,
+      "type": "per-sample"
+    },
+    "mod-bedmethyl-hap1": {
+      "filepath": "{{ alias }}.wf_mods.1.bedmethyl.gz",
+      "title": "Modified bases BEDMethyl (haplotype 1)",
+      "description": "BED file with the aggregated modification counts for haplotype 1 of the sample.",
+      "mime-type": "application/gzip",
+      "optional": true,
+      "type": "per-sample"
+    },
+    "mod-bedmethyl-hap2": {
+      "filepath": "{{ alias }}.wf_mods.2.bedmethyl.gz",
+      "title": "Modified bases BEDMethyl (haplotype 2)",
+      "description": "BED file with the aggregated modification counts for haplotype 2 of the sample.",
+      "mime-type": "application/gzip",
+      "optional": true,
+      "type": "per-sample"
+    },
+    "mod-bedmethyl-ungroup": {
+      "filepath": "{{ alias }}.wf_mods.ungrouped.bedmethyl.gz",
+      "title": "Modified bases BEDMethyl (ungrouped)",
+      "description": "BED file with the aggregated modification counts of non-haplotagged reads for the sample.",
+      "mime-type": "application/gzip",
+      "optional": true,
+      "type": "per-sample"
+    },
+    "haplotagged-alignment": {
+      "filepath": "{{ alias }}.haplotagged.bam",
+      "title": "Haplotagged alignment file",
+      "description": "BAM file with the haplotagged reads for the sample.",
+      "mime-type": "application/gzip",
+      "optional": true,
+      "type": "per-sample"
+    },    
+    "haplotagged-alignment-index": {
+      "filepath": "{{ alias }}.haplotagged.bam.bai",
+      "title": "Haplotagged alignment file index",
+      "description": "The index of the resulting BAM file with the haplotagged reads for the sample.",
+      "mime-type": "application/octet-stream",
+      "optional": true,
+      "type": "per-sample"
+    },
+    "coverage-by-region": {
+      "filepath": "{{ alias }}.regions.bed.gz",
+      "title": "Mean coverage for each region",
+      "description": "The mean coverage in the individual regions of the genome in BED format.",
+      "mime-type": "application/gzip",
+      "optional": false,
+      "type": "per-sample"
+    },
+    "coverage-by-threshold": {
+      "filepath": "{{ alias }}.thresholds.bed.gz",
+      "title": "Coverage per region above the given thresholds",
+      "description": "The BED reporting the number of bases in each region that are covered at or above each threshold values (1x, 10x, 20x and 30x).",
+      "mime-type": "application/gzip",
+      "optional": false,
+      "type": "per-sample"
+    },
+    "distribution-of-coverage": {
+      "filepath": "{{ alias }}.mosdepth.global.dist.txt",
+      "title": "Distribution of the proportion of total bases covered by a given coverage value",
+      "description": "The cumulative distribution indicating the proportion of total bases covered by a given coverage value, both genome-wide and by sequence.",
+      "mime-type": "text/plain",
+      "optional": false,
+      "type": "per-sample"
+    },
+    "coverage-summary": {
+      "filepath": "{{ alias }}.mosdepth.summary.txt",
+      "title": "Mean coverage per sequence and target region",
+      "description": "The summary of mean depths per chromosome and within specified regions per chromosome.",
+      "mime-type": "text/plain",
+      "optional": false,
+      "type": "per-sample"
+    },
+    "coverage-per-base": {
+      "filepath": "{{ alias }}.per-base.bedgraph.gz",
+      "title": "BEDgraph of the single-base coverage",
+      "description": "The single-base coverage of the genome in BED graph format.",
+      "mime-type": "application/gzip",
+      "optional": true,
+      "type": "per-sample"
+    },
+    "gene-summary": {
+      "filepath": "SAMPLE.gene_summary.tsv",
+      "title": "Gene level coverage summary",
+      "description": "A table where each gene of the input BED file has columns describing the percentage of positions along the gene region that are covered to a given threshold, and a column with the average coverage.",
+      "mime-type": "text/tsv",
+      "optional": true,
+      "type": "per-sample"
+    }
+  }
+}

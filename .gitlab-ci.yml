@@ -1,0 +1,62 @@
+# Include shared CI
+include:
+    - project: "epi2melabs/ci-templates"
+      file: "wf-containers.yaml"
+
+# conda, mac, simg
+variables:
+    NF_BEFORE_SCRIPT: "mkdir -p ${CI_PROJECT_NAME}/data/ && wget -q -O ${CI_PROJECT_NAME}/data/demo_data.tar.gz https://ont-exd-int-s3-euwst1-epi2me-labs.s3.amazonaws.com/wf-hereditary-cancer/wf-hereditary-cancer-demo.tar.gz && tar -xzvf ${CI_PROJECT_NAME}/data/demo_data.tar.gz -C ${CI_PROJECT_NAME}/data/"
+    NF_PROCESS_FILES: "wf-human-variation/modules/local/wf-human-snp.nf wf-human-variation/modules/local/wf-human-sv.nf"
+    NF_IGNORE_PROCESSES: "hap,phase_contig_haplotag,cat_haplotagged_contigs,phase_contig,getGenome,get_coverage,getVersions,getParams,failedQCReport,refine_with_sv,makeAlignmentReport"
+    NF_WORKFLOW_OPTS: "--bam ${CI_PROJECT_NAME}/data/wf-hereditary-cancer-demo/demo.bam --bed ${TEST_BED} --annotation_threads 4"
+    CI_FLAVOUR: "new"
+    PYTEST_CONTAINER_CONFIG_KEY: "e2l_base_tag"
+    PYTEST_CONTAINER_NAME: "wf-human-variation"
+    GIT_SUBMODULE_STRATEGY: recursive
+    RELEASE_WORKFLOW: "no" # do not release this workflow!
+
+docker-run:
+    artifacts:
+        when: always
+        paths:
+            - ${CI_PROJECT_NAME}
+            - .nextflow.log
+        exclude:
+            - ${CI_PROJECT_NAME}/**/*.bam
+            - ${CI_PROJECT_NAME}/**/*.cram
+            - ${CI_PROJECT_NAME}/**/*.fa
+            - ${CI_PROJECT_NAME}/**/*.fna
+            - ${CI_PROJECT_NAME}/**/*.fasta
+            - ${CI_PROJECT_NAME}/**/ref_cache/**
+            - ${CI_PROJECT_NAME}/data/**/*
+            - ${CI_PROJECT_NAME}/store_dir/**/*
+
+    # Define a 1D job matrix to inject a variable named MATRIX_NAME into
+    #   the CI environment, we can use the value of MATRIX_NAME to determine
+    #   which options to apply as part of the rules block below
+    # NOTE There is a slightly cleaner way to define this matrix to include
+    #   the variables, but it is broken when using long strings! See CW-756
+    parallel:
+        matrix:
+            - MATRIX_NAME: [
+                run-all
+              ]
+    rules:
+        # NOTE As we're overriding the rules block for the included docker-run
+        #   we must redefine this CI_COMMIT_BRANCH rule to prevent docker-run
+        #   being incorrectly scheduled for "detached merge request pipelines" etc.
+        - if: ($CI_COMMIT_BRANCH == null || $CI_COMMIT_BRANCH == "dev-template")
+          when: never
+
+        - if: $MATRIX_NAME == "run-all"
+          variables:
+              NF_BEFORE_SCRIPT: "mkdir -p ${CI_PROJECT_NAME}/data/ && wget -q -O ${CI_PROJECT_NAME}/data/demo_data.tar.gz https://ont-exd-int-s3-euwst1-epi2me-labs.s3.amazonaws.com/wf-hereditary-cancer/wf-hereditary-cancer-demo.tar.gz && tar -xzvf ${CI_PROJECT_NAME}/data/demo_data.tar.gz -C ${CI_PROJECT_NAME}/data/"
+              NF_PROCESS_FILES: "wf-human-variation/modules/local/wf-human-snp.nf wf-human-variation/modules/local/wf-human-sv.nf"
+              NF_IGNORE_PROCESSES: "hap,phase_contig_haplotag,cat_haplotagged_contigs,phase_contig,getGenome,get_coverage,getVersions,getParams,failedQCReport,refine_with_sv,makeAlignmentReport,phase_gvcf"
+              NF_WORKFLOW_OPTS: "--bam ${CI_PROJECT_NAME}/data/wf-hereditary-cancer-demo/demo.bam --bed ${TEST_BED} --annotation_threads 4"
+
+macos-run:
+  # Let's avoid those ARM64 runners for now
+  tags:
+    - macos
+    - x86
