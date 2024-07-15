@@ -39,37 +39,47 @@ ARM processor support: False
 
 ## Install and run
 
-<!---Nextflow text remains the same across workflows, update example cmd and demo data sections.--->
-These are instructions to install and run the workflow on command line. You can also access the workflow via the [EPI2ME application](https://labs.epi2me.io/downloads/).
 
-The workflow uses [Nextflow](https://www.nextflow.io/) to manage compute and software resources, therefore nextflow will need to be installed before attempting to run the workflow.
+These are instructions to install and run the workflow on command line.
+You can also access the workflow via the
+[EPI2ME Desktop application](https://labs.epi2me.io/downloads/).
 
-The workflow can currently be run using either [Docker](https://www.docker.com/products/docker-desktop) or
-[Singularity](https://docs.sylabs.io/guides/3.0/user-guide/index.html) to provide isolation of
-the required software. Both methods are automated out-of-the-box provided
-either docker or singularity is installed. This is controlled by the [`-profile`](https://www.nextflow.io/docs/latest/config.html#config-profiles) parameter as exemplified below.
+The workflow uses [Nextflow](https://www.nextflow.io/) to manage
+compute and software resources,
+therefore Nextflow will need to be
+installed before attempting to run the workflow.
 
-It is not required to clone or download the git repository in order to run the workflow.
-More information on running EPI2ME workflows can be found on our [website](https://labs.epi2me.io/wfindex).
+The workflow can currently be run using either
+[Docker](https://www.docker.com/products/docker-desktop
+or [Singularity](https://docs.sylabs.io/guides/3.0/user-guide/index.html)
+to provide isolation of the required software.
+Both methods are automated out-of-the-box provided
+either Docker or Singularity is installed.
+This is controlled by the
+[`-profile`](https://www.nextflow.io/docs/latest/config.html#config-profiles)
+parameter as exemplified below.
 
-The following command can be used to obtain the workflow. This will pull the repository in to the assets folder of nextflow and provide a list of all parameters available for the workflow as well as an example command:
+It is not required to clone or download the git repository
+in order to run the workflow.
+More information on running EPI2ME workflows can
+be found on our [website](https://labs.epi2me.io/wfindex).
+
+The following command can be used to obtain the workflow.
+This will pull the repository in to the assets folder of
+Nextflow and provide a list of all parameters
+available for the workflow as well as an example command:
 
 ```
-nextflow run epi2me-labs/wf-hereditary-cancer –-help
+nextflow run epi2me-labs/wf-hereditary-cancer --help
 ```
-A demo dataset is provided for testing of the workflow. Please note, you will also need the Hereditary Cancer BED file to run this workflow. Please contact your sales to obtain this. The demo data can be downloaded using:
+To update a workflow to the latest version on the command line use
+the following command:
 ```
-wget https://ont-exd-int-s3-euwst1-epi2me-labs.s3.amazonaws.com/wf-hereditary-cancer/wf-hereditary-cancer-demo.tar.gz
-tar -xzvf wf-hereditary-cancer-demo.tar.gz
+nextflow pull epi2me-labs/wf-hereditary-cancer
 ```
-The workflow can be run with the demo data using:
-```
-nextflow run epi2me-labs/wf-hereditary-cancer \
---bam wf-hereditary-cancer-demo/demo.bam \
---bed <hereditary_cancer_bed>
--profile standard
-```
-For further information about running a workflow on the cmd line see https://labs.epi2me.io/wfquickstart/
+
+For further information about running a workflow on
+the command line see https://labs.epi2me.io/wfquickstart/
 
 
 
@@ -116,9 +126,15 @@ input_reads.bam     ─── input_directory
 | sample_name | string | Sample name to be displayed in workflow outputs. |  | SAMPLE |
 | bam | string | BAM or unaligned BAM (uBAM) files for the sample to use in the analysis. | This accepts one of two cases: (i) the path to a single BAM file; (ii) the path to a top-level directory containing BAM files. A sample name can be supplied with `--sample`. |  |
 | bed | string | A BED file enumerating regions to process for variant calling. | Please contact your sales representative to obtain the hereditary cancer BED file |  |
-| basecaller_cfg | string | Name of the model to use for selecting a small variant calling model. | The workflow will attempt to find the basecaller model from the headers of your input data. If the model cannot be found in the header, it must be provided with this option as the basecaller model is required for small variant calling. The basecaller model is used to automatically select the appropriate small variant calling model. The model list shows all models that are compatible for small variant calling with this workflow. You should select 'custom' to override the basecaller_cfg with clair3_model_path. | dna_r10.4.1_e8.2_400bps_hac@v4.3.0 |
 | out_dir | string | Directory for output of all workflow results. |  | output |
 | store_dir | string | Where to store initial download of reference genome. | Reference genome will be downloaded as part of the workflow and saved in this location, on subsequent runs it will use this as the reference. |  |
+
+
+### Advanced Options
+
+| Nextflow parameter name  | Type | Description | Help | Default |
+|--------------------------|------|-------------|------|---------|
+| override_basecaller_cfg | string | Name of the model to use for selecting a small variant calling model. | The workflow will attempt to find the basecaller model from the headers of your input data, providing a value for this option will override the model found in the data. If the model cannot be found in the header, it must be provided with this option as the basecaller model is required for small variant calling. The basecaller model is used to automatically select the appropriate small variant calling model. The model list shows all models that are compatible for small variant calling with this workflow. You should select 'custom' to override the basecaller_cfg with clair3_model_path. |  |
 
 
 ### Multiprocessing Options
@@ -129,7 +145,6 @@ input_reads.bam     ─── input_directory
 | ubam_map_threads | integer | Set max number of threads to use for aligning reads from uBAM (limited by config executor cpus) |  | 8 |
 | ubam_sort_threads | integer | Set max number of threads to use for sorting and indexing aligned reads from uBAM (limited by config executor cpus) |  | 3 |
 | ubam_bam2fq_threads | integer | Set max number of threads to use for uncompressing uBAM and generating FASTQ for alignment (limited by config executor cpus) |  | 1 |
-| merge_threads | integer | Set max number of threads to use for merging alignment files (limited by config executor cpus) |  | 4 |
 | modkit_threads | integer | Total number of threads to use in modkit modified base calling (limited by config executor cpus) |  | 4 |
 
 
