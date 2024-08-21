@@ -134,8 +134,6 @@ workflow {
         }
     }
 
-    
-
     // Programmatically define chromosome codes.
     // note that we avoid interpolation (eg. "${chr}N") to ensure that values
     // are Strings and not GStringImpl, ensuring that .contains works.
@@ -380,11 +378,20 @@ workflow {
     }
 
     // Run readStats depending on the downsampling, if requested.
-    if (params.downsample_coverage){
-        readStats(pass_bam_channel, bed, ref_channel)
-    // Otherwise, use input bam
+    // Also check if using_user_bed is true, in which case pass the sanitised 
+    // BED to readStats, rather than the filtered BED
+    if (params.downsample_coverage) {
+        readStats(
+            pass_bam_channel,
+            using_user_bed ? roi_filter_bed : bed,
+            ref_channel
+        )
     } else {
-        readStats(bam_channel, bed, ref_channel)
+        readStats(
+            bam_channel,
+            using_user_bed ? roi_filter_bed : bed,
+            ref_channel
+        )
     }
     bam_stats = readStats.out.read_stats
     bam_flag = readStats.out.flagstat
@@ -504,11 +511,12 @@ workflow {
             .combine(bam_stats)
             .combine(bam_flag)
             .combine(bam_hists)
-            .combine(mosdepth_stats.map{it[0]})
+            .combine(mosdepth_stats.map{it[1]})
             .combine(mosdepth_summary)
             .combine(ref_channel)
             .combine(software_versions.collect())
             .combine(workflow_params)
+            .combine(Channel.value(using_user_bed))
             .flatten()
             .collect() | makeAlignmentReport
         // Create failing bam report
@@ -516,11 +524,12 @@ workflow {
             .combine(bam_stats)
             .combine(bam_flag)
             .combine(bam_hists)
-            .combine(mosdepth_stats.map{it[0]})
+            .combine(mosdepth_stats.map{it[1]})
             .combine(mosdepth_summary)
             .combine(ref_channel)
             .combine(software_versions.collect())
             .combine(workflow_params)
+            .combine(Channel.value(using_user_bed))
             .flatten()
             .collect() | failedQCReport
     } else {
@@ -706,11 +715,11 @@ workflow {
             .collect()
             .set{clair3_results}
 
-        // Define which bam to use
+        // Define which bam to use for final refinement
         if (run_haplotagging){
-            snp_bam = clair_vcf.haplotagged_xam
+            snp_refinement_xam = clair_vcf.haplotagged_xam
         } else {
-            snp_bam = pass_bam_channel
+            snp_refinement_xam = pass_bam_channel
         }
 
         // Refine the SNP phase using SVs from Sniffles
@@ -721,12 +730,12 @@ workflow {
             refined_snps = refine_with_sv(
                 ref_channel.collect(),
                 clair_vcf.vcf_files.combine(clair_vcf.contigs),
-                snp_bam.collect(),
-                sniffles_vcf.collect()
+                snp_refinement_xam | first,
+                sniffles_vcf.map{meta, vcf -> vcf}.collect()
             )
             final_snp_vcf = concat_refined_snp(
-                refined_snps.collect(),
-                "${params.sample_name}.wf_snp"
+                refined_snps.map{ meta, vcf, tbi -> [meta, vcf]}.groupTuple(),
+                "wf_snp"
             )
         } else {
             // If refine_with_sv not requested, passthrough
@@ -753,7 +762,7 @@ workflow {
             annotations = annotate_snp_vcf(
                 final_snp_vcf_filtered.combine(clair_vcf.contigs), genome_build, "snp"
             )
-            final_vcf = concat_snp_vcfs(annotations.collect(), "${params.sample_name}.wf_snp").final_vcf
+            final_vcf = concat_snp_vcfs(annotations.map{ meta, vcf, tbi -> [meta,vcf]}.groupTuple(), "wf_snp").final_vcf
             clinvar_vcf = sift_clinvar_snp_vcf(final_vcf, genome_build, "snp").final_vcf_clinvar
         }
 
@@ -761,7 +770,7 @@ workflow {
         vcf_stats = vcfStats(final_vcf)
 
         // Prepare the report
-        snp_reporting = report_snp(vcf_stats[0], clinvar_vcf)
+        snp_reporting = report_snp(vcf_stats, clinvar_vcf)
         json_snp = snp_reporting.snp_stats_json
         if (params.output_report){
             snp_report = snp_reporting.report
@@ -772,7 +781,7 @@ workflow {
         // Output for SNP
         snp_report
             .concat(clair3_results)
-            .concat(final_vcf)
+            .concat(final_vcf.map{meta, vcf, tbi -> [vcf, tbi]})
             .concat(clinvar_vcf)
             .flatten() | output_snp
     } else {
